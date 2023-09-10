@@ -13,4 +13,4 @@ pkg/
 conf.go
 
 # SQL files (optional, only if you want to keep these out of the repo)
-*.sql
+
