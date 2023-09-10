@@ -24,7 +24,7 @@ func main() {
 	api = anaconda.NewTwitterApi(TOKEN, TOKEN_SECRET)
 
 	// Init DB
-	database, err := db.Init(MYSQL_USER, MYSQL_PASSWORD, MYSQL_SCHEMA)
+	database, err := db.Init()
 	if err != nil {
 		panic(err.Error())
 	}

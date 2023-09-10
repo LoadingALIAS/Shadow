@@ -38,6 +38,12 @@ package main
 //const MYSQL_PASSWORD string = ""
 //const MYSQL_SCHEMA string = "/db"
 
+const PG_HOST string = "localhost"
+const PG_PORT int = 5432
+const PG_USER string = ""
+const PG_PASSWORD string = ""
+const PG_DBNAME string = "shadow_db"
+
 //var KIMONO_DATA_SOURCES = []string{"https://www.kimonolabs.com/api", "https://www.kimonolabs.com/api"}
 //var REDDIT_DATA_SOURCES = []string{}
 //var KEYWORDS = []string{"key1", "key2}
