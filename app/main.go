@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/benoitletondor/TwitterBot/app/db"
+	"github.com/LoadingALIAS/Shadow/app/db"
 
-	"github.com/benoitletondor/TwitterBot/app/content"
+	"github.com/LoadingALIAS/Shadow/app/content"
 
 	"github.com/ChimeraCoder/anaconda"
 	wit "github.com/jsgoecke/go-wit"

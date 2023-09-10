@@ -11,6 +11,7 @@ pkg/
 
 # Config files with sensitive information
 conf.go
+.env
 
 # SQL files (optional, only if you want to keep these out of the repo)
 
