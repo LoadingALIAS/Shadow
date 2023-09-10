@@ -1,0 +1,16 @@
+# Go build files
+bin/
+pkg/
+*.out
+
+# GoLand files
+.idea/
+
+# macOS files
+.DS_Store
+
+# Config files with sensitive information
+conf.go
+
+# SQL files (optional, only if you want to keep these out of the repo)
+*.sql

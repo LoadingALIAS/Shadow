@@ -40,8 +40,8 @@ package main
 
 const PG_HOST string = "localhost"
 const PG_PORT int = 5432
-const PG_USER string = ""
-const PG_PASSWORD string = ""
+const PG_USER string = "shadow"
+const PG_PASSWORD string = "007CipherText$!"
 const PG_DBNAME string = "shadow_db"
 
 //var KIMONO_DATA_SOURCES = []string{"https://www.kimonolabs.com/api", "https://www.kimonolabs.com/api"}
