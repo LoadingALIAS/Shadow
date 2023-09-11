@@ -1,0 +1,31 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+.env
+
+# Config and secrets
+/configs/config.ini
+
+# Logs
+/logs/*.log
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# macOS artifacts
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+
+# Other
+*.swp
+*.swo
