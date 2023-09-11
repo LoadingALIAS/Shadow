@@ -1,6 +1,8 @@
 package main
 
 import (
+	cryptoRand "crypto/rand" // Alias to avoid name clash
+	"encoding/binary"
 	"fmt"
 	"log"
 	"math/rand"
@@ -27,16 +29,10 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-
 	defer database.Close()
 
 	// Init Content
 	content.Init(config.HASHTAGS, config.T_CO_URL_LENGTH)
-
-	for _, kimonoDataSourcesUrl := range config.KIMONO_DATA_SOURCES {
-		content.RegisterAPI(content.KimonoContent{Url: kimonoDataSourcesUrl})
-	}
-
 	for _, redditDataSourceUrl := range config.REDDIT_DATA_SOURCES {
 		content.RegisterAPI(content.RedditContent{Url: redditDataSourceUrl})
 	}
@@ -44,8 +40,19 @@ func main() {
 	// Init WIT api
 	witclient = wit.NewClient(config.WIT_ACCESS_TOKEN)
 
-	// Init random
-	rand.Seed(time.Now().UnixNano())
+	// Better seeding for randomness
+	var b [8]byte
+	_, err = cryptoRand.Read(b[:])
+	if err != nil {
+		log.Fatal("Cannot seed math/rand package:", err)
+	}
+	rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+
+	// Load the Pacific Timezone
+	location, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Starts the wake up ticker
 	var d time.Duration
@@ -54,22 +61,20 @@ func main() {
 	}
 
 	ticker := time.NewTicker(d)
-
 	log.Println("Hello world")
 
 	// do a first launch for immediate action before starting the ticker
-	bot()
+	bot(location)
 
 	// wake up and go to sleep forever ever and never. tintintin.
 	for range ticker.C {
-		bot()
+		bot(location)
 	}
 }
 
-func bot() {
+func bot(location *time.Location) {
 	log.Println("----------- Waking up!")
-
-	hour := time.Now().Hour()
+	hour := time.Now().In(location).Hour()
 
 	if config.GO_TO_BED_HOUR < config.WAKE_UP_HOUR && (hour >= config.WAKE_UP_HOUR || hour < config.GO_TO_BED_HOUR) {
 		performDailyAction()

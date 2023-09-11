@@ -3,12 +3,23 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/LoadingALIAS/Shadow/app/config"
 	_ "github.com/lib/pq"
 )
 
 var database *sql.DB
+var location *time.Location // This can be used in other files in this package
+
+func init() {
+	var err error
+	location, err = time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func Init() (*sql.DB, error) {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",

@@ -1,7 +1,10 @@
 package main
 
 import (
+	cryptoRand "crypto/rand" // Alias to avoid name clash
+	"encoding/binary"
 	"log"
+	"math/rand"
 	"net/url"
 	"strings"
 	"time"
@@ -11,6 +14,22 @@ import (
 	"github.com/LoadingALIAS/Shadow/app/db"
 )
 
+// Initialize random seed and time zone
+func init() {
+	// Better seeding for randomness
+	var b [8]byte
+	_, err := cryptoRand.Read(b[:])
+	if err != nil {
+		log.Fatal("Cannot seed math/rand package:", err)
+	}
+	rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+
+	// Load the Pacific Timezone
+	_, err = time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -60,11 +79,15 @@ func isUserAcceptable(tweet anaconda.Tweet) bool {
 }
 
 func generateAPISearchValues(word string) (string, url.Values) {
-	searchString := word
+	var sb strings.Builder
+	sb.WriteString(word)
 
 	for _, word := range config.BANNED_KEYWORDS {
-		searchString += " -" + word
+		sb.WriteString(" -")
+		sb.WriteString(word)
 	}
+
+	searchString := sb.String()
 
 	v := url.Values{}
 	v.Add("lang", config.ACCEPTED_LANGUAGE)
@@ -79,7 +102,7 @@ func isMentionOrRT(tweet anaconda.Tweet) bool {
 }
 
 func isMe(tweet anaconda.Tweet) bool {
-	return strings.ToLower(tweet.User.ScreenName) == strings.ToLower(config.USER_NAME)
+	return strings.EqualFold(tweet.User.ScreenName, config.USER_NAME)
 }
 
 func hasReachDailyTweetLimit() (bool, error) {

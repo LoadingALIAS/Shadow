@@ -1,11 +1,15 @@
 package main
 
 import (
-	"github.com/ChimeraCoder/anaconda"
-	"github.com/jsgoecke/go-wit"
+	cryptoRand "crypto/rand" // Alias to avoid name clash
+	"encoding/binary"
 	"log"
 	"math/rand"
 	"strings"
+	"time"
+
+	"github.com/ChimeraCoder/anaconda"
+	"github.com/jsgoecke/go-wit"
 )
 
 const (
@@ -13,6 +17,23 @@ const (
 	INTENT_NICE_ARTICLE = "nice_article"
 	INTENT_THANK_FOLLOW = "thank_follow"
 )
+
+// Initialize random seed and time zone
+func init() {
+	// Better seeding for randomness
+	var b [8]byte
+	_, err := cryptoRand.Read(b[:])
+	if err != nil {
+		log.Fatal("Cannot seed math/rand package:", err)
+	}
+	rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+
+	// Load the Pacific Timezone
+	_, err = time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func buildReply(tweet anaconda.Tweet) (string, error) {
 	message := cleanTweetMessage(tweet.Text)

@@ -1,6 +1,8 @@
 package main
 
 import (
+	cryptoRand "crypto/rand"
+	"encoding/binary"
 	"log"
 	"math/rand"
 	"net/url"
@@ -13,13 +15,27 @@ import (
 	"github.com/LoadingALIAS/Shadow/app/db"
 )
 
+func init() {
+	var b [8]byte
+	_, err := cryptoRand.Read(b[:])
+	if err != nil {
+		log.Fatal("Cannot seed math/rand package:", err)
+	}
+	rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+
+	_, err = time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 const (
-	_FOLLOW     = iota
-	_UNFOLLOW   = iota
-	_FAVORITE   = iota
-	_UNFAVORITE = iota
-	_TWEET      = iota
-	_REPLY      = iota
+	_FOLLOW = iota
+	_UNFOLLOW
+	_FAVORITE
+	_UNFAVORITE
+	_TWEET
+	_REPLY
 )
 
 type Action struct {
@@ -69,25 +85,18 @@ func selectAndPerformAction(actions []Action) {
 	switch selectedAction.name {
 	case _FOLLOW:
 		actionFollow()
-		break
 	case _UNFOLLOW:
 		actionUnfollow()
-		break
 	case _FAVORITE:
 		actionFavorite()
-		break
 	case _UNFAVORITE:
 		actionUnfavorite()
-		break
 	case _TWEET:
 		actionTweet()
-		break
 	case _REPLY:
 		actionReply()
-		break
 	default:
 		log.Println("Nothing to do")
-		break
 	}
 }
 
@@ -165,6 +174,10 @@ func actionUnfollow() {
 
 	date := time.Now()
 	duration, err := time.ParseDuration("-72h") // -3 days
+	if err != nil {
+		log.Println("Error while parsing duration", err)
+		return
+	}
 	date = date.Add(duration)
 
 	follows, err := db.GetNotUnfollowed(date, config.UNFOLLOW_LIMIT_IN_A_ROW)
@@ -293,6 +306,10 @@ func actionUnfavorite() {
 
 	date := time.Now()
 	duration, err := time.ParseDuration("-72h") // -3 days
+	if err != nil {
+		log.Println("Error while parsing duration", err)
+		return
+	}
 	date = date.Add(duration)
 
 	favs, err := db.GetNotUnfavorite(date, config.UNFAVORITE_LIMIT_IN_A_ROW)

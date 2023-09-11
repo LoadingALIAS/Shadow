@@ -1,6 +1,8 @@
 package content
 
 import (
+	"bytes"
+	"io"
 	"log"
 	"strings"
 
@@ -14,20 +16,32 @@ type RedditContent struct {
 func (reddit RedditContent) callAPI() ([]Content, error) {
 	resp, err := getWebserviceResponse(reddit.Url)
 	if err != nil {
-		log.Println("Error while calling url: " + reddit.Url)
+		log.Println("Error while calling URL: " + reddit.Url)
+		return nil, err
+	}
+	defer resp.Body.Close() // Don't forget to close the response body
+
+	var buf bytes.Buffer
+
+	_, err = io.Copy(&buf, resp.Body)
+	if err != nil {
+		log.Println("Error while reading the response body")
 		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromResponse(resp)
+	// Create a new reader with the buffer
+	reader := bytes.NewReader(buf.Bytes())
+
+	// Create a goquery document
+	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
-		log.Println("Error while calling API")
+		log.Println("Error while creating the goquery document")
 		return nil, err
 	}
 
 	rv := make([]Content, 0)
 
 	doc.Find("div.Post").Each(func(i int, selec *goquery.Selection) {
-
 		// ignore sticky posts
 		if selec.HasClass("stickied") {
 			return

@@ -1,8 +1,9 @@
 package db
 
 import (
+	cryptoRand "crypto/rand"
 	"database/sql"
-	"github.com/go-sql-driver/mysql"
+	"encoding/binary"
 	"time"
 )
 
@@ -21,8 +22,17 @@ const (
 	_TABLE_FOLLOW = "follow"
 )
 
+func GenerateCryptoRandInt(max int) (int, error) {
+	var n uint64
+	err := binary.Read(cryptoRand.Reader, binary.LittleEndian, &n)
+	if err != nil {
+		return 0, err
+	}
+	return int(n % uint64(max)), nil
+}
+
 func AlreadyFollow(userId int64) (bool, error) {
-	stmtOut, err := database.Prepare("SELECT count(*) FROM " + _TABLE_FOLLOW + " WHERE userId = ? LIMIT 1")
+	stmtOut, err := database.Prepare("SELECT count(*) FROM " + _TABLE_FOLLOW + " WHERE userId = $1 LIMIT 1")
 	if err != nil {
 		return true, err
 	}
@@ -44,9 +54,9 @@ func (follow Follow) Persist() error {
 	var err error
 
 	if follow.id == 0 {
-		stmtIns, err = database.Prepare("INSERT INTO " + _TABLE_FOLLOW + "(userId, userName, status, followDate, unfollowDate, lastAction) VALUES( ?, ?, ?, ?, ? ,?)")
+		stmtIns, err = database.Prepare("INSERT INTO " + _TABLE_FOLLOW + "(userId, userName, status, followDate, unfollowDate, lastAction) VALUES( $1, $2, $3, $4, $5 ,$6)")
 	} else {
-		stmtIns, err = database.Prepare("UPDATE " + _TABLE_FOLLOW + " SET userId = ?, userName = ?, status = ?, followDate = ?, unfollowDate = ?, lastAction = ? WHERE id = ?")
+		stmtIns, err = database.Prepare("UPDATE " + _TABLE_FOLLOW + " SET userId = $1, userName = $2, status = $3, followDate = $4, unfollowDate = $5, lastAction = $6 WHERE id = $7")
 	}
 
 	if err != nil {
@@ -55,7 +65,7 @@ func (follow Follow) Persist() error {
 
 	defer stmtIns.Close()
 
-	unfollowDate := mysql.NullTime{Time: follow.UnfollowDate, Valid: !follow.UnfollowDate.IsZero()}
+	unfollowDate := sql.NullTime{Time: follow.UnfollowDate, Valid: !follow.UnfollowDate.IsZero()}
 
 	if follow.id == 0 {
 		_, err = stmtIns.Exec(follow.UserId, follow.UserName, follow.Status, follow.FollowDate, unfollowDate, time.Now())
@@ -69,7 +79,7 @@ func (follow Follow) Persist() error {
 func GetNotUnfollowed(maxFollowDate time.Time, limit int) ([]Follow, error) {
 	follows := make([]Follow, 0)
 
-	stmtOut, err := database.Prepare("SELECT * FROM " + _TABLE_FOLLOW + " WHERE unfollowDate IS NULL AND followDate <= ? ORDER BY lastAction LIMIT ?")
+	stmtOut, err := database.Prepare("SELECT * FROM " + _TABLE_FOLLOW + " WHERE unfollowDate IS NULL AND followDate <= $1 ORDER BY lastAction LIMIT $2")
 	if err != nil {
 		return follows, err
 	}
@@ -101,7 +111,7 @@ func mapFollow(rows *sql.Rows) (Follow, error) {
 	var userName string
 	var status string
 	var followDate time.Time
-	var unfollowDate mysql.NullTime
+	var unfollowDate sql.NullTime
 	var lastAction time.Time
 
 	err := rows.Scan(&id, &userId, &userName, &status, &followDate, &unfollowDate, &lastAction)
