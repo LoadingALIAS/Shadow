@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/benoitletondor/TwitterBot/app/content"
-	"github.com/benoitletondor/TwitterBot/app/db"
+	"github.com/LoadingALIAS/Shadow/app/config"
+	"github.com/LoadingALIAS/Shadow/app/content"
+	"github.com/LoadingALIAS/Shadow/app/db"
 )
 
 const (
@@ -29,12 +30,12 @@ type Action struct {
 func performDailyAction() {
 	actions := make([]Action, 0, 6)
 
-	actions = append(actions, Action{name: _FOLLOW, weight: ACTION_FOLLOW_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _UNFOLLOW, weight: ACTION_UNFOLLOW_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _FAVORITE, weight: ACTION_FAVORITE_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _UNFAVORITE, weight: ACTION_UNFAVORITE_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _TWEET, weight: ACTION_TWEET_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _REPLY, weight: ACTION_REPLY_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _FOLLOW, weight: config.ACTION_FOLLOW_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _UNFOLLOW, weight: config.ACTION_UNFOLLOW_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _FAVORITE, weight: config.ACTION_FAVORITE_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _UNFAVORITE, weight: config.ACTION_UNFAVORITE_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _TWEET, weight: config.ACTION_TWEET_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _REPLY, weight: config.ACTION_REPLY_WEIGHT * rand.Intn(100)})
 
 	selectAndPerformAction(actions)
 }
@@ -42,12 +43,12 @@ func performDailyAction() {
 func performNightlyAction() {
 	actions := make([]Action, 0, 6)
 
-	actions = append(actions, Action{name: _FOLLOW, weight: ACTION_NIGHTLY_FOLLOW_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _UNFOLLOW, weight: ACTION_NIGHTLY_UNFOLLOW_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _FAVORITE, weight: ACTION_NIGHTLY_FAVORITE_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _UNFAVORITE, weight: ACTION_NIGHTLY_UNFAVORITE_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _TWEET, weight: ACTION_NIGHTLY_TWEET_WEIGHT * rand.Intn(100)})
-	actions = append(actions, Action{name: _REPLY, weight: ACTION_NIGHTLY_REPLY_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _FOLLOW, weight: config.ACTION_NIGHTLY_FOLLOW_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _UNFOLLOW, weight: config.ACTION_NIGHTLY_UNFOLLOW_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _FAVORITE, weight: config.ACTION_NIGHTLY_FAVORITE_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _UNFAVORITE, weight: config.ACTION_NIGHTLY_UNFAVORITE_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _TWEET, weight: config.ACTION_NIGHTLY_TWEET_WEIGHT * rand.Intn(100)})
+	actions = append(actions, Action{name: _REPLY, weight: config.ACTION_NIGHTLY_REPLY_WEIGHT * rand.Intn(100)})
 
 	selectAndPerformAction(actions)
 }
@@ -93,7 +94,7 @@ func selectAndPerformAction(actions []Action) {
 func actionFollow() {
 	log.Println("Action follow")
 
-	search, v := generateAPISearchValues(KEYWORDS[rand.Intn(len(KEYWORDS))])
+	search, v := generateAPISearchValues(config.KEYWORDS[rand.Intn(len(config.KEYWORDS))])
 
 	searchResult, err := api.GetSearch(search, v)
 	if err != nil {
@@ -145,7 +146,7 @@ func actionFollow() {
 			return
 		}
 
-		if !DEBUG_TWITTER {
+		if !config.DEBUG_TWITTER {
 			_, err = api.FollowUser(tweet.User.ScreenName)
 			if err != nil {
 				log.Println("Error while following user "+tweet.User.ScreenName+" : ", err)
@@ -166,7 +167,7 @@ func actionUnfollow() {
 	duration, err := time.ParseDuration("-72h") // -3 days
 	date = date.Add(duration)
 
-	follows, err := db.GetNotUnfollowed(date, UNFOLLOW_LIMIT_IN_A_ROW)
+	follows, err := db.GetNotUnfollowed(date, config.UNFOLLOW_LIMIT_IN_A_ROW)
 	if err != nil {
 		log.Println("Error while querying db to find people to unfollow", err)
 		return
@@ -199,7 +200,7 @@ func actionUnfollow() {
 			return
 		}
 
-		if !DEBUG_TWITTER {
+		if !config.DEBUG_TWITTER {
 			_, err = api.UnfollowUser(follow.UserName)
 			if err != nil {
 				log.Println("Error while querying API to unfollow @"+follow.UserName, err)
@@ -216,7 +217,7 @@ func actionUnfollow() {
 func actionFavorite() {
 	log.Println("Action fav")
 
-	search, v := generateAPISearchValues(KEYWORDS[rand.Intn(len(KEYWORDS))])
+	search, v := generateAPISearchValues(config.KEYWORDS[rand.Intn(len(config.KEYWORDS))])
 
 	searchResult, err := api.GetSearch(search, v)
 	if err != nil {
@@ -226,7 +227,7 @@ func actionFavorite() {
 
 	i := 0
 	for _, tweet := range searchResult.Statuses {
-		if i >= FAV_LIMIT_IN_A_ROW {
+		if i >= config.FAV_LIMIT_IN_A_ROW {
 			return
 		}
 
@@ -268,7 +269,7 @@ func actionFavorite() {
 			return
 		}
 
-		if !DEBUG_TWITTER {
+		if !config.DEBUG_TWITTER {
 			_, err = api.Favorite(tweet.Id)
 			if err != nil {
 				if strings.Contains(err.Error(), "139") { // Case of an already favorited tweet
@@ -294,7 +295,7 @@ func actionUnfavorite() {
 	duration, err := time.ParseDuration("-72h") // -3 days
 	date = date.Add(duration)
 
-	favs, err := db.GetNotUnfavorite(date, UNFAVORITE_LIMIT_IN_A_ROW)
+	favs, err := db.GetNotUnfavorite(date, config.UNFAVORITE_LIMIT_IN_A_ROW)
 	if err != nil {
 		log.Println("Error while querying db to find tweet to unfav", err)
 		return
@@ -327,7 +328,7 @@ func actionUnfavorite() {
 			return
 		}
 
-		if !DEBUG_TWITTER {
+		if !config.DEBUG_TWITTER {
 			_, err = api.Unfavorite(fav.TweetId)
 			if err != nil {
 				log.Println("Error while querying API to unfav : "+fav.Status, err)
@@ -369,7 +370,7 @@ func actionTweet() {
 		return
 	}
 
-	if !DEBUG_TWITTER {
+	if !config.DEBUG_TWITTER {
 		tweet, err := api.PostTweet(tweetText, nil)
 		if err != nil {
 			log.Println("Error while posting tweet", err)
@@ -413,7 +414,7 @@ func actionReply() {
 				v := url.Values{}
 				v.Add("in_reply_to_status_id", strconv.FormatInt(tweet.Id, 10))
 
-				if !DEBUG_TWITTER {
+				if !config.DEBUG_TWITTER {
 					respTweet, err := api.PostTweet(response, v)
 					if err != nil {
 						log.Println("Error while posting reply", err)

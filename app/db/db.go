@@ -4,15 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/LoadingALIAS/Shadow/app/config"
 	_ "github.com/lib/pq"
-	// Import conf.go here
 )
 
 var database *sql.DB
 
 func Init() (*sql.DB, error) {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		PG_HOST, PG_PORT, PG_USER, PG_PASSWORD, PG_DBNAME)
+		config.PG_HOST, config.PG_PORT, config.PG_USER, config.PG_PASSWORD, config.PG_DBNAME)
 
 	// Init Postgres DB
 	dbLink, err := sql.Open("postgres", connStr)

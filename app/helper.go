@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
-	"github.com/benoitletondor/TwitterBot/app/db"
+	"github.com/LoadingALIAS/Shadow/app/config"
+	"github.com/LoadingALIAS/Shadow/app/db"
 )
 
 func stringInSlice(a string, list []string) bool {
@@ -39,7 +40,7 @@ func isUserFollowing(userName string) (bool, error) {
 func isUserAcceptable(tweet anaconda.Tweet) bool {
 	words := strings.Split(tweet.Text, " ")
 	for _, word := range words {
-		if stringInSlice(strings.ToLower(word), BANNED_KEYWORDS) {
+		if stringInSlice(strings.ToLower(word), config.BANNED_KEYWORDS) {
 			return false
 		}
 	}
@@ -50,7 +51,7 @@ func isUserAcceptable(tweet anaconda.Tweet) bool {
 
 	words = strings.Split(tweet.User.Description, " ")
 	for _, word := range words {
-		if stringInSlice(strings.ToLower(word), BANNED_KEYWORDS) {
+		if stringInSlice(strings.ToLower(word), config.BANNED_KEYWORDS) {
 			return false
 		}
 	}
@@ -61,12 +62,12 @@ func isUserAcceptable(tweet anaconda.Tweet) bool {
 func generateAPISearchValues(word string) (string, url.Values) {
 	searchString := word
 
-	for _, word := range BANNED_KEYWORDS {
+	for _, word := range config.BANNED_KEYWORDS {
 		searchString += " -" + word
 	}
 
 	v := url.Values{}
-	v.Add("lang", ACCEPTED_LANGUAGE)
+	v.Add("lang", config.ACCEPTED_LANGUAGE)
 	v.Add("count", "100")
 	v.Add("result_type", "recent")
 
@@ -78,7 +79,7 @@ func isMentionOrRT(tweet anaconda.Tweet) bool {
 }
 
 func isMe(tweet anaconda.Tweet) bool {
-	return strings.ToLower(tweet.User.ScreenName) == strings.ToLower(USER_NAME)
+	return strings.ToLower(tweet.User.ScreenName) == strings.ToLower(config.USER_NAME)
 }
 
 func hasReachDailyTweetLimit() (bool, error) {
@@ -87,18 +88,18 @@ func hasReachDailyTweetLimit() (bool, error) {
 
 	now := time.Now()
 
-	if now.Hour() >= WAKE_UP_HOUR {
-		from = time.Date(now.Year(), now.Month(), now.Day(), WAKE_UP_HOUR, 0, 0, 0, now.Location())
+	if now.Hour() >= config.WAKE_UP_HOUR {
+		from = time.Date(now.Year(), now.Month(), now.Day(), config.WAKE_UP_HOUR, 0, 0, 0, now.Location())
 	} else {
 		yesterday := now.Add(-time.Duration(24) * time.Hour)
-		from = time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), WAKE_UP_HOUR, 0, 0, 0, yesterday.Location())
+		from = time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), config.WAKE_UP_HOUR, 0, 0, 0, yesterday.Location())
 	}
 
-	if now.Hour() < GO_TO_BED_HOUR {
-		to = time.Date(now.Year(), now.Month(), now.Day(), GO_TO_BED_HOUR, 0, 0, 0, now.Location())
+	if now.Hour() < config.GO_TO_BED_HOUR {
+		to = time.Date(now.Year(), now.Month(), now.Day(), config.GO_TO_BED_HOUR, 0, 0, 0, now.Location())
 	} else {
 		tomorrow := now.Add(time.Duration(24) * time.Hour)
-		to = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), GO_TO_BED_HOUR, 0, 0, 0, tomorrow.Location())
+		to = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), config.GO_TO_BED_HOUR, 0, 0, 0, tomorrow.Location())
 	}
 
 	count, err := db.GetNumberOfTweetsBetweenDates(from, to)
@@ -106,5 +107,5 @@ func hasReachDailyTweetLimit() (bool, error) {
 		return true, err
 	}
 
-	return count >= MAX_TWEET_IN_A_DAY, nil
+	return count >= config.MAX_TWEET_IN_A_DAY, nil
 }

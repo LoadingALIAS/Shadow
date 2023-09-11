@@ -2,14 +2,14 @@ package content
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/benoitletondor/TwitterBot/app/db"
+	"github.com/LoadingALIAS/Shadow/app/db"
 )
 
 type ContentAPI interface {
@@ -111,7 +111,7 @@ func getWebserviceContent(url string) ([]byte, error) {
 	// Defer the closing of the body
 	defer resp.Body.Close()
 	// Read the content into a byte array
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

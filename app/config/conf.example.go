@@ -1,11 +1,6 @@
 package config
 
-import "os"
-
-var (
-  // Load all your variables here
-  UserName = os.Getenv("USER_NAME")
-
+//Constants
 //const USER_NAME = "twitterName"
 //const ACTIONS_INTERVAL = "30m"
 //const WAKE_UP_HOUR int = 16
@@ -47,12 +42,13 @@ var (
 //const PG_USER string = ""
 //const PG_PASSWORD string = ""
 //const PG_DBNAME string = ""
+//const ACCEPTED_LANGUAGE string = "en"
 
+//var(
 //var KIMONO_DATA_SOURCES = []string{"https://www.kimonolabs.com/api", "https://www.kimonolabs.com/api"}
 //var REDDIT_DATA_SOURCES = []string{}
 //var KEYWORDS = []string{"key1", "key2}
 //var HASHTAGS = []string{"hash1", "hash2"}
 
-//const ACCEPTED_LANGUAGE string = "en"
-
 //var BANNED_KEYWORDS = []string{"porn"}
+//)
