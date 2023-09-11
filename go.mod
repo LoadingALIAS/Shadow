@@ -5,7 +5,6 @@ go 1.21.1
 require (
 	github.com/ChimeraCoder/anaconda v2.0.0+incompatible
 	github.com/PuerkitoBio/goquery v1.8.1
-	github.com/go-sql-driver/mysql v1.7.1
 	github.com/jsgoecke/go-wit v0.0.0-20151130032604-4dd03e19c801
 	github.com/lib/pq v1.10.9
 )
