@@ -1,9 +1,11 @@
 import praw  # For Reddit
 import feedparser  # For RSS feeds
-import requests  # For GitHub API
 import configparser  # For reading API keys from config.ini
 import random
 import datetime
+import logging
+from time import mktime
+from bs4 import BeautifulSoup
 
 # Read API keys from config.ini
 config = configparser.ConfigParser()
@@ -15,49 +17,59 @@ reddit = praw.Reddit(client_id=config['Reddit']['CLIENT_ID'],
                      user_agent=config['Reddit']['USER_AGENT'])
 
 def fetch_reddit_content():
-    # List of subreddits to fetch from
     subreddits = ['ArtificialIntelligence', 'LocalLLaMA', 'MachineLearning']
-
-    # Randomly select one subreddit
     selected_subreddit = random.choice(subreddits)
-
-    # Dictionary to store the fetched post
     fetched_post = {}
-
-    # Fetch and filter posts from Reddit
     sub = reddit.subreddit(selected_subreddit)
-    
-    # Fetch the top 10 hot posts, then select one at random
     top_posts = [post for post in sub.hot(limit=10)]
     selected_post = random.choice(top_posts)
-    
     fetched_post = {
-        'subreddit': selected_subreddit,
+        'source': 'Reddit',
         'title': selected_post.title,
-        'url': selected_post.url,
+        'description': selected_post.selftext,
         'score': selected_post.score,
-        'timestamp': datetime.fromtimestamp(selected_post.created_utc).strftime('%Y-%m-%d %H:%M:%S')
+        'timestamp': datetime.datetime.fromtimestamp(selected_post.created_utc).strftime('%Y-%m-%d %H:%M:%S')
     }
-    
     return fetched_post
-    pass
 
-def fetch_defiant_content(url):
-    # Use BeautifulSoup to scrape the website
-    # Return the filtered and relevant content
-    pass
+def fetch_dailyai_content():
+    feed = feedparser.parse("https://dailyai.com/feed")
+    sorted_articles = sorted(feed['entries'], key=lambda x: mktime(x['published_parsed']), reverse=True)
+    top_articles = sorted_articles[:4]
+    selected_article = random.choice(top_articles)
+    content_encoded = selected_article.get('content', [{'value': 'N/A'}])[0]['value']
+    soup = BeautifulSoup(content_encoded, 'html.parser')
+    content_encoded = soup.get_text()
+    fetched_article = {
+        'source': 'DailyAI',
+        'title': selected_article.get('title', 'N/A'),
+        'description': selected_article.get('description', 'N/A'),
+        'content': content_encoded
+    }
+    return fetched_article
 
-def fetch_defiant_content(url):
-    # Use BeautifulSoup to scrape the website
-    # Return the filtered and relevant content
-    pass
+def fetch_random_content():
+    content = None
+    try:
+        # Randomly choose between Reddit and DailyAI
+        selected_source = random.choice([fetch_reddit_content, fetch_dailyai_content])
+        
+        # Fetch content from the selected source
+        content = selected_source()
+        
+    except Exception as e:
+        logging.error(f"An error occurred while fetching content from {selected_source.__name__}: {e}")
+        selected_source = fetch_reddit_content  # Fallback to Reddit
 
-def fetch_github_content(repo_name):
-    # Use GitHub's API to fetch updates
-    # Return the relevant updates
-    pass
+    if content is None or not content:
+        # Log an error or fallback to Reddit
+        logging.error(f"Failed to fetch content from {selected_source.__name__}. Falling back to Reddit.")
+        content = fetch_reddit_content()
 
-def fetch_paperswithcode_content():
-    # Use PaperswithCode API to fetch latest papers
-    # Return the relevant papers
-    pass
+    return content
+
+# Example usage
+if __name__ == "__main__":
+    fetched_content = fetch_random_content()
+    print("Fetched Content Details:")
+    print(fetched_content)
