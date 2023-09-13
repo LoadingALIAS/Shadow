@@ -24,17 +24,7 @@ config.read('config.ini')
 # Initialize OAuth
 auth = OAuthHandler(config.get('Twitter', 'CONSUMER_KEY'), config.get('Twitter', 'CONSUMER_SECRET'))
 
-@app.route('/start_auth')
-def start_auth():
-    try:
-        # Get the request tokens from Twitter
-        redirect_url = auth.get_authorization_url()
-        # Redirect user to Twitter to authorize
-        return redirect(redirect_url)
-    except Exception as e:
-        logger.error(f"Failed to authenticate with Twitter: {e}")
-        return "Failed to authenticate with Twitter."
-
+# Twitter Callback
 @app.route('/twitter_callback', methods=['GET'])
 def twitter_callback():
     oauth_verifier = request.args.get('oauth_verifier')
@@ -42,9 +32,18 @@ def twitter_callback():
         try:
             # Get the access token
             auth.get_access_token(oauth_verifier)
-            # Initialize the Tweepy API
+            
+            # Save the access token and secret
+            config.set('Twitter', 'ACCESS_TOKEN', auth.access_token)
+            config.set('Twitter', 'ACCESS_TOKEN_SECRET', auth.access_token_secret)
+            
+            # Optional: Save the new config to config.ini
+            with open('config.ini', 'w') as configfile:
+                config.write(configfile)
+            
+            # Initialize the Tweepy API with new tokens
             api = API(auth)
-            # Perform authenticated actions here, if needed
+            
             return "OAuth verified."
         except Exception as e:
             logger.error(f"Failed to verify OAuth: {e}")
@@ -89,11 +88,11 @@ if args.start == 'schedule':
 
 # Global variables to keep track of interaction counts and times
 interaction_limits = {
-    'tweet': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 4, 'period': timedelta(days=1)},
-    'reply': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 16, 'period': timedelta(days=1)},
-    'follow': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 16, 'period': timedelta(days=1)},
-    'unfollow': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 16, 'period': timedelta(days=1)},
-    'retweet': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 4, 'period': timedelta(days=1)}
+    'tweet': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'tweet_limit')), 'period': timedelta(days=1)},
+    'reply': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'reply_limit')), 'period': timedelta(days=1)},
+    'follow': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'follow_limit')), 'period': timedelta(days=1)},
+    'unfollow': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'unfollow_limit')), 'period': timedelta(days=1)},
+    'retweet': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'retweet_limit')), 'period': timedelta(days=1)}
 }
 
 # Check if an interaction can be performed
@@ -106,6 +105,9 @@ def can_perform_interaction(interaction_type):
     return limit_info['count'] < limit_info['limit']
 
 # Filter for Advertising, Promos, and Newsletters
+blocked_keywords_str = config.get('Keywords', 'blocked_keywords')
+blocked_keywords = [keyword.strip() for keyword in blocked_keywords_str.split(',')]
+
 def is_blocked_keyword_present(text, blocked_keywords):
     for keyword in blocked_keywords:
         if re.search(r'\b' + re.escape(keyword) + r'\b', text, re.I):
@@ -114,7 +116,6 @@ def is_blocked_keyword_present(text, blocked_keywords):
 
 def perform_interaction(interaction_type, is_blocked_keyword_present, external_content=None, tweet_content=None):
     global max_tweet_length
-    blocked_keywords = ['Ad', 'Promo', 'Advert', 'Advertisement', 'Promotion', 'Promotional', 'Newsletter']
     
     try:
         if can_perform_interaction(interaction_type):

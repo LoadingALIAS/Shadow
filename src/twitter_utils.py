@@ -35,12 +35,12 @@ def post_reply(user_screen_name, tweet_id, content):
     api.update_status(status=f"@{user_screen_name} {content}", in_reply_to_status_id=tweet_id)
     logger.info(f"Posted a reply to {user_screen_name}.")
 
-# Follow a user based on the timeline
+# Follow a User Based on Timeline
 def perform_follow():
     api = init_tweepy_api()
     timeline = api.home_timeline(count=50)
 
-    # Load existing followed accounts
+    # Load Existing 'followed accounts'
     try:
         with open('followed_accounts.json', 'r') as f:
             followed_accounts = json.load(f)
@@ -54,19 +54,19 @@ def perform_follow():
             api.create_friendship(user.id)
             logger.info(f"Followed {user.screen_name}")
 
-            # Update the list of followed accounts with the current timestamp
+            # Update 'followed accounts' w/ the Current Timestamp
             followed_accounts[user.screen_name] = str(datetime.now())
             with open('followed_accounts.json', 'w') as f:
                 json.dump(followed_accounts, f)
 
             break
 
-# Unfollow users who are not in the target list and are not following back
+# Unfollow - Not in Target List; Not Following Back Within 8 Days.
 def perform_unfollow():
     api = init_tweepy_api()
 
     # Load target list
-    with open('config/target_list.json', 'r') as f:
+    with open('target_list.json', 'r') as f:
         target_list = json.load(f)
 
     # Load followed accounts
@@ -92,26 +92,34 @@ def perform_unfollow():
 
                     break  # Stop after one successful unfollow
 
+# Retweet
 def perform_retweet(is_blocked_keyword_present):
     api = init_tweepy_api()
-    topics = random.choice(config['Twitter']['TOPICS'].split(','))    
-    blocked_keywords = ['Ad', 'Promo', 'Advert', 'Advertisement', 'Promotion', 'Promotional', 'Newsletter']
+    
+    # Read topics and blocked keywords from config.ini
+    topics = config.get('Topics', 'TOPICS').split(', ')
+    random_topic = random.choice(topics)
+    blocked_keywords = config.get('Keywords', 'blocked_keywords').split(',')
 
-    for tweet in search_tweets(topics, 10):  # Assuming we search the top 10 trending tweets
-        tweet_text = tweet.text  # Assuming 'text' contains the text of the tweet you're retweeting
+    for tweet in search_tweets(random_topic, 10):  # Assuming we search the top 10 trending tweets
+        tweet_text = tweet.text
         user_screen_name = tweet.user.screen_name
-        
+
         if tweet.user.followers_count > 2500 and not tweet.retweeted and not tweet.favorited:
             if not is_blocked_keyword_present(tweet_text, blocked_keywords) and not is_blocked_keyword_present(user_screen_name, blocked_keywords):
                 tweet.favorite()
                 tweet.retweet()
                 logger.info(f"Liked and retweeted tweet from {tweet.user.screen_name}")
-                break  # Stop after one successful retweet
+                break
             else:
                 logger.info(f"Skipped retweet from {user_screen_name} due to keyword restrictions.")
 
-# Search for tweets
-def search_tweets(search_query, max_tweets):
+# Search for Tweets
+def search_tweets(max_tweets):
     api = init_tweepy_api()
-    search_query = config['Search']['QUERY']
-    return tweepy.Cursor(api.search_tweets, search_query).items(max_tweets)
+    
+    # Read query terms from config.ini
+    query_terms = config.get('Search', 'QUERY').split(', ')
+    random_query = random.choice(query_terms)
+    
+    return tweepy.Cursor(api.search_tweets, random_query).items(max_tweets)

@@ -22,6 +22,12 @@ config.ini
 # macOS artifacts
 .DS_Store
 
+# Personal Content
+reply_prompt.txt
+tweet_prompt.txt
+target_list.json
+followed_accounts.json
+
 # IDEs
 .idea/
 .vscode/

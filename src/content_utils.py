@@ -11,10 +11,14 @@ from bs4 import BeautifulSoup
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-# Initialize Reddit API
-reddit = praw.Reddit(client_id=config['Reddit']['CLIENT_ID'],
-                     client_secret=config['Reddit']['CLIENT_SECRET'],
-                     user_agent=config['Reddit']['USER_AGENT'])
+# Initialize Reddit API with OAuth
+reddit = praw.Reddit(
+    client_id=config['Reddit']['CLIENT_ID'],
+    client_secret=config['Reddit']['CLIENT_SECRET'],
+    user_agent=config['Reddit']['USER_AGENT'],
+    username=config['Reddit']['USERNAME'],
+    password=config['Reddit']['PASSWORD']
+)
 
 def fetch_reddit_content():
     subreddits = ['ArtificialIntelligence', 'LocalLLaMA', 'MachineLearning']
