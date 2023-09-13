@@ -11,7 +11,7 @@ venv/
 .env
 
 # Config and secrets
-/configs/config.ini
+config.ini
 
 # Logs
 /logs/*.log
