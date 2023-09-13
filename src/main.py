@@ -3,19 +3,29 @@ import logging
 import pytz
 import re
 import schedule
-from datetime import datetime, timedelta
 import configparser
+import argparse
+import random
+import threading
+
 import openai_utils
 import twitter_utils
-import random
-import argparse
+import database_utils
 import content_utils
+
 from flask import Flask, request, redirect
-import threading
 from tweepy import OAuthHandler, API
+from threading import Lock
+from datetime import datetime, timedelta
 
 # Initialize Flask
 app = Flask(__name__)
+
+# Initialize SQLite DB
+database_utils.initialize_db()
+
+# Initialize Lock
+interaction_lock = Lock()
 
 # Load Config
 config = configparser.ConfigParser()
@@ -24,9 +34,12 @@ config.read('config.ini')
 # Initialize OAuth
 auth = OAuthHandler(config.get('Twitter', 'CONSUMER_KEY'), config.get('Twitter', 'CONSUMER_SECRET'))
 
-# Twitter Callback
+# Declare api variable at the global scope but don't initialize it
+api = None
+
 @app.route('/twitter_callback', methods=['GET'])
 def twitter_callback():
+    global api  # Declare it global inside the function
     oauth_verifier = request.args.get('oauth_verifier')
     if oauth_verifier:
         try:
@@ -97,16 +110,13 @@ interaction_limits = {
 
 # Check if an interaction can be performed
 def can_perform_interaction(interaction_type):
-    limit_info = interaction_limits[interaction_type]
-    current_time = datetime.now(tz)
-    if current_time - limit_info['last_time'] >= limit_info['period']:
-        limit_info['last_time'] = current_time
-        limit_info['count'] = 0  # Resetting the count
-    return limit_info['count'] < limit_info['limit']
-
-# Filter for Advertising, Promos, and Newsletters
-blocked_keywords_str = config.get('Keywords', 'blocked_keywords')
-blocked_keywords = [keyword.strip() for keyword in blocked_keywords_str.split(',')]
+    with interaction_lock:  # Use the lock here
+        limit_info = interaction_limits[interaction_type]
+        current_time = datetime.now(tz)
+        if current_time - limit_info['last_time'] >= limit_info['period']:
+            limit_info['last_time'] = current_time
+            limit_info['count'] = 0  # Resetting the count
+        return limit_info['count'] < limit_info['limit']
 
 def is_blocked_keyword_present(text, blocked_keywords):
     for keyword in blocked_keywords:
@@ -114,40 +124,32 @@ def is_blocked_keyword_present(text, blocked_keywords):
             return True
     return False
 
-def perform_interaction(interaction_type, is_blocked_keyword_present, external_content=None, tweet_content=None):
+def perform_interaction(interaction_type, external_content=None, tweet_content=None):
     global max_tweet_length
     
     try:
         if can_perform_interaction(interaction_type):
 
             # Fetch random content if the interaction is a tweet
-            if interaction_type in ['tweet']:
+            if interaction_type == 'tweet':
                 external_content = content_utils.fetch_random_content()
 
             if interaction_type in ['reply', 'tweet']:
-                # Check for blocked keywords in the tweet text and user screen name
-                tweet_text = tweet_content.get('tweet_text', '') if tweet_content else ''
-                user_screen_name = tweet_content.get('user_screen_name', '') if tweet_content else ''
+                prompt = openai_utils.read_prompt(interaction_type)
+                encoded_prompt = f"{prompt}\n{external_content['content'] if external_content else tweet_content}"
+                reply_text = openai_utils.call_openai_api(encoded_prompt, max_tweet_length)
 
-                if not is_blocked_keyword_present(tweet_text, blocked_keywords) and not is_blocked_keyword_present(user_screen_name, blocked_keywords):
-                    prompt = openai_utils.read_prompt(interaction_type)
-                    encoded_prompt = f"{prompt}\n{external_content['content'] if external_content else tweet_content}"
-                    reply_text = openai_utils.call_openai_api(encoded_prompt, max_tweet_length)
-
-                    if interaction_type == 'reply':
-                        twitter_utils.post_reply(user_screen_name, tweet_content['tweet_id'], reply_text)
-                    else:
-                        twitter_utils.post_tweet(reply_text)
+                if interaction_type == 'reply':
+                    twitter_utils.post_reply(api, tweet_content['user_screen_name'], tweet_content['tweet_id'], reply_text)
                 else:
-                    logger.info(f"Skipped interaction with tweet or account from {user_screen_name} due to keyword restrictions.")
-                    return  # Skip the rest of the function
+                    twitter_utils.post_tweet(api, reply_text)
 
             elif interaction_type == 'follow':
-                twitter_utils.perform_follow()
+                twitter_utils.perform_follow(api)
             elif interaction_type == 'unfollow':
-                twitter_utils.perform_unfollow()
+                twitter_utils.perform_unfollow(api)
             elif interaction_type == 'retweet':
-                twitter_utils.perform_retweet(is_blocked_keyword_present)    
+                twitter_utils.perform_retweet(api)    
 
             # Update the count for the performed interaction
             interaction_limits[interaction_type]['count'] += 1
