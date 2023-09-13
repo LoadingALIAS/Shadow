@@ -10,12 +10,16 @@ logger = logging.getLogger()
 
 # Initialize Tweepy
 def init_tweepy_api():
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    auth = tweepy.OAuthHandler(config['Twitter']['CONSUMER_KEY'], config['Twitter']['CONSUMER_SECRET'])
-    auth.set_access_token(config['Twitter']['ACCESS_TOKEN'], config['Twitter']['ACCESS_TOKEN_SECRET'])
-    api = tweepy.API(auth, wait_on_rate_limit=True)
-    return api
+    try:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        auth = tweepy.OAuthHandler(config['Twitter']['CONSUMER_KEY'], config['Twitter']['CONSUMER_SECRET'])
+        auth.set_access_token(config['Twitter']['ACCESS_TOKEN'], config['Twitter']['ACCESS_TOKEN_SECRET'])
+        api = tweepy.API(auth, wait_on_rate_limit=True)
+        return api
+    except Exception as e:
+        logger.error(f"Failed to initialize Tweepy API: {e}")
+        raise
 
 # Tweet
 def post_tweet(content):

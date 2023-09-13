@@ -2,7 +2,6 @@ import time
 import logging
 import pytz
 import re
-import json
 import schedule
 from datetime import datetime, timedelta
 import configparser
@@ -14,7 +13,7 @@ import content_utils
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+logger = logging.getLogger("WSABI_Shadow_Bot")
 
 # Load Config
 config = configparser.ConfigParser()
@@ -28,14 +27,13 @@ account_type = config['General']['ACCOUNT_TYPE']
 max_tweet_length = 280 if account_type == 'free' else 4000
 
 # Initialize CLI Arguments
-parser = argparse.ArgumentParser(description='Control your Twitter bot.')
+parser = argparse.ArgumentParser(description='Control the Shadow Bot.')
 parser.add_argument('--start', choices=['auto', 'schedule'], help='Start the bot in a specific mode.')
 parser.add_argument('--schedule_time', type=str, help='Specify the schedule time in the format HH:MM-HH:MM.')
 args = parser.parse_args()
 
 # Global variables to keep track of interaction counts and times
 interaction_limits = {
-    'thread': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 2, 'period': timedelta(weeks=1)},
     'tweet': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 4, 'period': timedelta(days=1)},
     'reply': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 16, 'period': timedelta(days=1)},
     'follow': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': 16, 'period': timedelta(days=1)},
@@ -63,44 +61,47 @@ def perform_interaction(interaction_type, is_blocked_keyword_present, external_c
     global max_tweet_length
     blocked_keywords = ['Ad', 'Promo', 'Advert', 'Advertisement', 'Promotion', 'Promotional', 'Newsletter']
     
-    if can_perform_interaction(interaction_type):
+    try:
+        if can_perform_interaction(interaction_type):
 
-        # Fetch random content if the interaction is a tweet or thread
-        if interaction_type in ['tweet', 'thread']:
-            external_content = content_utils.fetch_random_content()
+            # Fetch random content if the interaction is a tweet
+            if interaction_type in ['tweet']:
+                external_content = content_utils.fetch_random_content()
 
-        if interaction_type in ['reply', 'tweet', 'thread']:
-            # Check for blocked keywords in the tweet text and user screen name
-            tweet_text = tweet_content.get('tweet_text', '') if tweet_content else ''  # Assuming 'tweet_text' contains the text of the tweet you're replying to
-            user_screen_name = tweet_content.get('user_screen_name', '') if tweet_content else ''
+            if interaction_type in ['reply', 'tweet']:
+                # Check for blocked keywords in the tweet text and user screen name
+                tweet_text = tweet_content.get('tweet_text', '') if tweet_content else ''
+                user_screen_name = tweet_content.get('user_screen_name', '') if tweet_content else ''
 
-            if not is_blocked_keyword_present(tweet_text, blocked_keywords) and not is_blocked_keyword_present(user_screen_name, blocked_keywords):
-                prompt = openai_utils.read_prompt(interaction_type)
-                encoded_prompt = f"{prompt}\n{external_content['content'] if external_content else tweet_content}"
-                reply_text = openai_utils.call_openai_api(encoded_prompt, max_tweet_length)
+                if not is_blocked_keyword_present(tweet_text, blocked_keywords) and not is_blocked_keyword_present(user_screen_name, blocked_keywords):
+                    prompt = openai_utils.read_prompt(interaction_type)
+                    encoded_prompt = f"{prompt}\n{external_content['content'] if external_content else tweet_content}"
+                    reply_text = openai_utils.call_openai_api(encoded_prompt, max_tweet_length)
 
-                if interaction_type == 'reply':
-                    twitter_utils.post_reply(user_screen_name, tweet_content['tweet_id'], reply_text)
+                    if interaction_type == 'reply':
+                        twitter_utils.post_reply(user_screen_name, tweet_content['tweet_id'], reply_text)
+                    else:
+                        twitter_utils.post_tweet(reply_text)
                 else:
-                    twitter_utils.post_tweet(reply_text)
-            else:
-                logger.info(f"Skipped interaction with tweet or account from {user_screen_name} due to keyword restrictions.")
-                return  # Skip the rest of the function
+                    logger.info(f"Skipped interaction with tweet or account from {user_screen_name} due to keyword restrictions.")
+                    return  # Skip the rest of the function
 
-        elif interaction_type == 'follow':
-            twitter_utils.perform_follow()
-        elif interaction_type == 'unfollow':
-            twitter_utils.perform_unfollow()
-        elif interaction_type == 'retweet':
-            twitter_utils.perform_retweet(is_blocked_keyword_present)    
+            elif interaction_type == 'follow':
+                twitter_utils.perform_follow()
+            elif interaction_type == 'unfollow':
+                twitter_utils.perform_unfollow()
+            elif interaction_type == 'retweet':
+                twitter_utils.perform_retweet(is_blocked_keyword_present)    
 
-        # Update the count for the performed interaction
-        interaction_limits[interaction_type]['count'] += 1
-
+            # Update the count for the performed interaction
+            interaction_limits[interaction_type]['count'] += 1
+            
+    except Exception as e:
+        logger.error(f"Failed to perform {interaction_type}: {e}")
 
 # Function to operate the bot in auto mode
 def operate_in_auto_mode():
-    actions = ['tweet', 'reply', 'thread', 'follow', 'unfollow', 'retweet']
+    actions = ['tweet', 'reply', 'follow', 'unfollow', 'retweet']
     chosen_action = random.choice(actions)
     
     if can_perform_interaction(chosen_action):
@@ -108,6 +109,31 @@ def operate_in_auto_mode():
         logger.info(f"Performed action: {chosen_action}")
     else:
         logger.info(f"Cannot perform action: {chosen_action}, limit reached.")
+
+# Initialize CLI Arguments
+parser = argparse.ArgumentParser(description='Control your Twitter bot.')
+parser.add_argument('--start', choices=['auto', 'schedule'], required=True, help='Start the bot in a specific mode.')
+parser.add_argument('--schedule_time', type=str, help='Specify the schedule time in the format HH:MM-HH:MM.')
+args = parser.parse_args()
+
+# Validate 'start' argument
+if args.start not in ['auto', 'schedule']:
+    logger.error("Invalid value for --start. Choose between 'auto' and 'schedule'.")
+    exit(1)
+
+# Validate 'schedule_time' argument
+if args.start == 'schedule':
+    if not args.schedule_time:
+        logger.error("--schedule_time is required when --start is 'schedule'.")
+        exit(1)
+    
+    try:
+        start_time, end_time = args.schedule_time.split('-')
+        datetime.datetime.strptime(start_time, '%H:%M')  # Validates HH:MM format
+        datetime.datetime.strptime(end_time, '%H:%M')  # Validates HH:MM format
+    except ValueError:
+        logger.error("Invalid --schedule_time format. Use HH:MM-HH:MM.")
+        exit(1)
 
 # Handling CLI arguments
 if args.start == 'auto':
@@ -117,7 +143,6 @@ if args.start == 'auto':
         time.sleep(sleep_time)
 
 if args.start == 'schedule':
-    start_time, end_time = args.schedule_time.split('-')
     schedule.every().day.at(start_time).do(operate_in_auto_mode).tag('auto_mode')
     schedule.every().day.at(end_time).do(schedule.clear, 'auto_mode')
 
