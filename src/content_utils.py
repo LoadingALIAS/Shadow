@@ -7,7 +7,7 @@ import logging
 from time import mktime
 from bs4 import BeautifulSoup
 
-# Read API keys from config.ini
+# Load Config
 config = configparser.ConfigParser()
 config.read('config.ini')
 

@@ -2,6 +2,11 @@ import openai
 import configparser
 from main import logger
 
+# Load Config
+config = configparser.ConfigParser()
+config.read('config.ini')
+openai.api_key = config['OpenAI']['API_KEY']
+ 
 # Get model parameters from the config file
 def get_model_params():
     config = configparser.ConfigParser()

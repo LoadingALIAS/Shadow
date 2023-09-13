@@ -3,16 +3,18 @@ import configparser
 import logging
 import json
 from datetime import datetime, timedelta
-import config
 import random
 
+# Load Config
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# Logging
 logger = logging.getLogger()
 
 # Initialize Tweepy
 def init_tweepy_api():
     try:
-        config = configparser.ConfigParser()
-        config.read('config.ini')
         auth = tweepy.OAuthHandler(config['Twitter']['CONSUMER_KEY'], config['Twitter']['CONSUMER_SECRET'])
         auth.set_access_token(config['Twitter']['ACCESS_TOKEN'], config['Twitter']['ACCESS_TOKEN_SECRET'])
         api = tweepy.API(auth, wait_on_rate_limit=True)
@@ -92,7 +94,7 @@ def perform_unfollow():
 
 def perform_retweet(is_blocked_keyword_present):
     api = init_tweepy_api()
-    topics = random.choice(config['Twitter']['TOPICS'].split(','))  # Assuming TOPICS is comma-separated
+    topics = random.choice(config['Twitter']['TOPICS'].split(','))    
     blocked_keywords = ['Ad', 'Promo', 'Advert', 'Advertisement', 'Promotion', 'Promotional', 'Newsletter']
 
     for tweet in search_tweets(topics, 10):  # Assuming we search the top 10 trending tweets
@@ -111,4 +113,5 @@ def perform_retweet(is_blocked_keyword_present):
 # Search for tweets
 def search_tweets(search_query, max_tweets):
     api = init_tweepy_api()
+    search_query = config['Search']['QUERY']
     return tweepy.Cursor(api.search_tweets, search_query).items(max_tweets)
