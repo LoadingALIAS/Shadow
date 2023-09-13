@@ -10,6 +10,19 @@ import twitter_utils
 import random
 import argparse
 import content_utils
+from flask import Flask, request
+import threading
+
+# Initialize Flask
+app = Flask(__name__)
+
+@app.route('/twitter_callback', methods=['GET'])
+def twitter_callback():
+    oauth_verifier = request.args.get('oauth_verifier')
+    if oauth_verifier:
+        # Handle OAuth verification here (if you need to)
+        return "OAuth Verified."
+    return "Missing OAuth Verifier."
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -149,3 +162,27 @@ if args.start == 'schedule':
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+# Function to run Flask in a separate thread
+def run_flask_app():
+    app.run(port=80)
+
+# Start Flask app in a separate thread
+flask_thread = threading.Thread(target=run_flask_app)
+flask_thread.start()
+
+# Your existing code for starting the bot in auto or schedule mode
+if args.start == 'auto':
+    while True:
+        operate_in_auto_mode()
+        sleep_time = random.randint(1, 3600)
+        time.sleep(sleep_time)
+
+if args.start == 'schedule':
+    schedule.every().day.at(start_time).do(operate_in_auto_mode).tag('auto_mode')
+    schedule.every().day.at(end_time).do(schedule.clear, 'auto_mode')
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
