@@ -1,25 +1,30 @@
-import praw  # For Reddit
-import feedparser  # For RSS feeds
-import configparser  # For reading API keys from config.ini
+import praw 
+import feedparser
 import random
 import datetime
 import logging
 from time import mktime
 from bs4 import BeautifulSoup
 
-# Load Config
-config = configparser.ConfigParser()
-config.read('config.ini')
+# Globals 
+logger = None
+reddit = None
 
-# Initialize Reddit API with OAuth
-reddit = praw.Reddit(
-    client_id=config['Reddit']['CLIENT_ID'],
-    client_secret=config['Reddit']['CLIENT_SECRET'],
-    user_agent=config['Reddit']['USER_AGENT'],
-    username=config['Reddit']['USERNAME'],
-    password=config['Reddit']['PASSWORD']
-)
+# Initialize Config
+def initialize_configurations(loaded_logger, loaded_reddit_config):
+    global logger, reddit
+    logger = loaded_logger
 
+    # Initialize Reddit API with OAuth
+    reddit = praw.Reddit(
+        client_id=loaded_reddit_config['CLIENT_ID'],
+        client_secret=loaded_reddit_config['CLIENT_SECRET'],
+        user_agent=loaded_reddit_config['USER_AGENT'],
+        username=loaded_reddit_config['USERNAME'],
+        password=loaded_reddit_config['PASSWORD']
+    )
+
+# Fetch Reddit Content
 def fetch_reddit_content():
     subreddits = ['ArtificialIntelligence', 'LocalLLaMA', 'MachineLearning']
     selected_subreddit = random.choice(subreddits)
@@ -36,6 +41,7 @@ def fetch_reddit_content():
     }
     return fetched_post
 
+# Fetch DailyAI Content
 def fetch_dailyai_content():
     feed = feedparser.parse("https://dailyai.com/feed")
     sorted_articles = sorted(feed['entries'], key=lambda x: mktime(x['published_parsed']), reverse=True)
@@ -52,28 +58,22 @@ def fetch_dailyai_content():
     }
     return fetched_article
 
+# Fetch at Random
 def fetch_random_content():
     content = None
     try:
-        # Randomly choose between Reddit and DailyAI
+        # Random Choice
         selected_source = random.choice([fetch_reddit_content, fetch_dailyai_content])
         
-        # Fetch content from the selected source
+        # Fetch Content
         content = selected_source()
         
     except Exception as e:
         logging.error(f"An error occurred while fetching content from {selected_source.__name__}: {e}")
-        selected_source = fetch_reddit_content  # Fallback to Reddit
+        selected_source = fetch_reddit_content
 
     if content is None or not content:
-        # Log an error or fallback to Reddit
         logging.error(f"Failed to fetch content from {selected_source.__name__}. Falling back to Reddit.")
         content = fetch_reddit_content()
 
     return content
-
-# Example usage
-if __name__ == "__main__":
-    fetched_content = fetch_random_content()
-    print("Fetched Content Details:")
-    print(fetched_content)
