@@ -33,6 +33,7 @@ auth = OAuthHandler(config.get('Twitter', 'CONSUMER_KEY'), config.get('Twitter',
 # Declare API Variable
 api = None
 
+# Route Start
 @app.route('/start_auth', methods=['GET'])
 def start_auth():
     global auth
@@ -45,6 +46,7 @@ def start_auth():
         logger.error(f"Failed to start OAuth: {e}")
         return "Failed to start OAuth."
 
+# Route Twitter Callback
 @app.route('/twitter_callback', methods=['GET'])
 def twitter_callback():
     global api 
@@ -70,9 +72,6 @@ def twitter_callback():
             logger.error(f"Failed to verify OAuth: {e}")
             return "Failed to verify OAuth."
     return "Missing OAuth verifier."
-
-# Set LA Timezone
-tz = pytz.timezone('America/Los_Angeles')
 
 # Read Account Type to Set Max Length
 account_type = config['General']['ACCOUNT_TYPE']
@@ -135,19 +134,19 @@ if args.start == 'schedule':
 
 # Global Variables for Interactions - Count & Time
 interaction_limits = {
-    'like': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'like_limit')), 'period': timedelta(days=1)},
-    'tweet': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'tweet_limit')), 'period': timedelta(days=1)},
-    'reply': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'reply_limit')), 'period': timedelta(days=1)},
-    'follow': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'follow_limit')), 'period': timedelta(days=1)},
-    'unfollow': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'unfollow_limit')), 'period': timedelta(days=1)},
-    'retweet': {'count': 0, 'last_time': datetime.min.replace(tzinfo=tz), 'limit': int(config.get('InteractionLimits', 'retweet_limit')), 'period': timedelta(days=1)}
+    'like': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'like_limit')), 'period': timedelta(days=1)},
+    'tweet': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'tweet_limit')), 'period': timedelta(days=1)},
+    'reply': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'reply_limit')), 'period': timedelta(days=1)},
+    'follow': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'follow_limit')), 'period': timedelta(days=1)},
+    'unfollow': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'unfollow_limit')), 'period': timedelta(days=1)},
+    'retweet': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'retweet_limit')), 'period': timedelta(days=1)}
 }
 
 # Check if Interaction can be Performed
 def can_perform_interaction(interaction_type):
     with interaction_lock:  # Use the lock here
         limit_info = interaction_limits[interaction_type]
-        current_time = datetime.now(tz)
+        current_time = datetime.now
         if current_time - limit_info['last_time'] >= limit_info['period']:
             limit_info['last_time'] = current_time
             limit_info['count'] = 0  # Reset
@@ -195,17 +194,12 @@ def perform_interaction(interaction_type, external_content=None, tweet_content=N
         logger.error(f"Failed to perform {interaction_type}: {e}")
 
 # Auto Mode Function
+# main.py
 def operate_in_auto_mode():
-    actions = ['tweet', 'reply', 'follow', 'unfollow', 'retweet', 'like']
-    chosen_action = random.choice(actions)
+    actions = ['tweet', 'follow', 'unfollow', 'retweet', 'like', 'like', 'like', 'like']
+    random.shuffle(actions)
 
-    if chosen_action == 'like':
-        if can_perform_interaction('like'):
-            twitter_utils.perform_like(api)
-            logger.info(f"Performed action: {chosen_action}")
-        else:
-            logger.info(f"Cannot perform action: {chosen_action}, limit reached.")
-    else:
+    for chosen_action in actions:
         if can_perform_interaction(chosen_action):
             perform_interaction(chosen_action)
             logger.info(f"Performed action: {chosen_action}")

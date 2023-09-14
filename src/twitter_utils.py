@@ -123,7 +123,7 @@ def perform_like(api):
         if not recent_tweets:
             continue
 
-        # Like Random Tweet from User
+        # Like Random Tweet from
         tweet_to_like = random.choice(recent_tweets)
 
         if not tweet_to_like.favorited:

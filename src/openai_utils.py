@@ -2,7 +2,6 @@ import openai
 from main import logger
 
 # Initialize global variables
-logger = None
 max_tweet_length = None
 openai_params = None
 
