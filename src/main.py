@@ -167,7 +167,7 @@ interaction_limits = {
 def can_perform_interaction(interaction_type):
     with interaction_lock:  # Use the lock here
         limit_info = interaction_limits[interaction_type]
-        current_time = datetime.now
+        current_time = datetime.now()
         if current_time - limit_info['last_time'] >= limit_info['period']:
             limit_info['last_time'] = current_time
             limit_info['count'] = 0  # Reset
@@ -244,7 +244,7 @@ if args.start == 'auto':
 
 if args.start == 'schedule':
     schedule.every().day.at(start_time).do(operate_in_auto_mode).tag('auto_mode')
-    schedule.every().day.at(end_time).do(schedule.clear, 'auto_mode')
+    schedule.every().day.at(end_time).do(lambda: schedule.clear('auto_mode'))
 
     while True:
         schedule.run_pending()
