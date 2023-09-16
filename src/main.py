@@ -1,6 +1,5 @@
 import time
 import logging
-import pytz
 import re
 import schedule
 import configparser
@@ -26,6 +25,28 @@ logger = logging.getLogger("WSABI_Shadow_Bot")
 # Load Config
 config = configparser.ConfigParser()
 config.read('config.ini')
+
+# ---- Start of Configuration Validation ----
+REQUIRED_SECTIONS = {
+    "General": ["ACCOUNT_TYPE", "NGROK_DOMAIN"],
+    "Search": ["QUERY", "MAX_TWEETS"],
+    "Topics": ["TOPICS"],
+    "Twitter": ["CONSUMER_KEY", "CONSUMER_SECRET", "ACCESS_TOKEN", "ACCESS_TOKEN_SECRET"],
+    "OpenAI": ["API_KEY", "MODEL", "TEMPERATURE", "MAX_TOKENS", "PRESENCE_PENALTY", "FREQUENCY_PENALTY"],
+    "Reddit": ["CLIENT_ID", "CLIENT_SECRET", "USER_AGENT", "USERNAME", "PASSWORD"],
+    "InteractionLimits": ["tweet_limit", "reply_limit", "follow_limit", "unfollow_limit", "retweet_limit", "like_limit"],
+    "Keywords": ["blocked_keywords"]
+}
+
+for section, keys in REQUIRED_SECTIONS.items():
+    if not config.has_section(section):
+        logger.error(f"Missing section: {section} in config.ini")
+        exit(1)
+    for key in keys:
+        if not config.has_option(section, key):
+            logger.error(f"Missing key: {key} in section: {section} in config.ini")
+            exit(1)
+# ---- End of Configuration Validation ----
 
 # Initialize OAuth
 auth = OAuthHandler(config.get('Twitter', 'CONSUMER_KEY'), config.get('Twitter', 'CONSUMER_SECRET'))
@@ -173,7 +194,7 @@ def perform_interaction(interaction_type, external_content=None, tweet_content=N
             if interaction_type in ['reply', 'tweet']:
                 prompt = openai_utils.read_prompt(interaction_type)
                 encoded_prompt = f"{prompt}\n{external_content['content'] if external_content else tweet_content}"
-                reply_text = openai_utils.call_openai_api(encoded_prompt, max_tweet_length)
+                reply_text = openai_utils.call_openai_api(encoded_prompt, max_tweet_length, logger)
 
                 if interaction_type == 'reply':
                     twitter_utils.post_reply(api, tweet_content['user_screen_name'], tweet_content['tweet_id'], reply_text)

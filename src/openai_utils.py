@@ -1,5 +1,4 @@
 import openai
-from main import logger
 
 # Initialize global variables
 max_tweet_length = None
@@ -7,14 +6,13 @@ openai_params = None
 
 # Initialize Configurations
 def initialize_configurations(loaded_logger, loaded_max_tweet_length, loaded_openai_params):
-    global logger, max_tweet_length, openai_params
-    logger = loaded_logger
+    global max_tweet_length, openai_params
     max_tweet_length = loaded_max_tweet_length
     openai_params = loaded_openai_params
     openai.api_key = openai_params['API_KEY']
 
 # OpenAI API Call
-def call_openai_api(encoded_prompt, max_tweet_length):
+def call_openai_api(encoded_prompt, max_tweet_length, logger):
     try:
         response = openai.ChatCompletion.create(
             model=openai_params['MODEL'],
