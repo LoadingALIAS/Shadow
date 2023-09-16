@@ -155,12 +155,12 @@ if args.start == 'schedule':
 
 # Global Variables for Interactions - Count & Time
 interaction_limits = {
-    'like': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'like_limit')), 'period': timedelta(days=1)},
-    'tweet': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'tweet_limit')), 'period': timedelta(days=1)},
-    'reply': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'reply_limit')), 'period': timedelta(days=1)},
-    'follow': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'follow_limit')), 'period': timedelta(days=1)},
-    'unfollow': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'unfollow_limit')), 'period': timedelta(days=1)},
-    'retweet': {'count': 0, 'last_time': datetime.min.replace, 'limit': int(config.get('InteractionLimits', 'retweet_limit')), 'period': timedelta(days=1)}
+    'like': {'count': 0, 'last_time': datetime.min, 'limit': int(config.get('InteractionLimits', 'like_limit')), 'period': timedelta(days=1)},
+    'tweet': {'count': 0, 'last_time': datetime.min, 'limit': int(config.get('InteractionLimits', 'tweet_limit')), 'period': timedelta(days=1)},
+    'reply': {'count': 0, 'last_time': datetime.min, 'limit': int(config.get('InteractionLimits', 'reply_limit')), 'period': timedelta(days=1)},
+    'follow': {'count': 0, 'last_time': datetime.min, 'limit': int(config.get('InteractionLimits', 'follow_limit')), 'period': timedelta(days=1)},
+    'unfollow': {'count': 0, 'last_time': datetime.min, 'limit': int(config.get('InteractionLimits', 'unfollow_limit')), 'period': timedelta(days=1)},
+    'retweet': {'count': 0, 'last_time': datetime.min, 'limit': int(config.get('InteractionLimits', 'retweet_limit')), 'period': timedelta(days=1)}
 }
 
 # Check if Interaction can be Performed
