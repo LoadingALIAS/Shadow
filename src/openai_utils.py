@@ -39,7 +39,6 @@ def call_openai_api(encoded_prompt, max_tweet_length, logger):
         logger.error(f"Failed to call OpenAI API: {e}")
         raise
 
-# Read Prompt
 def read_prompt(prompt_type):
-    with open(f'src/{prompt_type}_prompt.txt', 'r') as file:
+    with open(f'{prompt_type}_prompt.txt', 'r') as file:
         return file.read().strip()
