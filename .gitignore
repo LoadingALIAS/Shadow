@@ -29,7 +29,7 @@ target_list.json
 followed_accounts.json
 
 # Database
-.db
+*.db
 
 # IDEs
 .idea/
