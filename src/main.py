@@ -6,11 +6,13 @@ import configparser
 import argparse
 import random
 import threading
+import os
 
 from flask import Flask, request, redirect
 from tweepy import OAuthHandler, API
 from threading import Lock
 from datetime import datetime, timedelta
+from database_utils import close_connection
 
 # Initialize Flask
 app = Flask(__name__)
@@ -18,8 +20,12 @@ app = Flask(__name__)
 # Initialize Lock
 interaction_lock = Lock()
 
+# Log Directory
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
 # Initialize Logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename='logs/app.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("WSABI_Shadow_Bot")
 
 # Load Config
@@ -64,7 +70,7 @@ def start_auth():
         # Redirect to Twitter for Auth
         return redirect(redirect_url)
     except Exception as e:
-        logger.error(f"Failed to start OAuth: {e}")
+        logger.exception(f"Failed to start OAuth: {e}")
         return "Failed to start OAuth."
 
 # Route Twitter Callback
@@ -90,7 +96,7 @@ def twitter_callback():
             
             return "OAuth verified."
         except Exception as e:
-            logger.error(f"Failed to verify OAuth: {e}")
+            logger.exception(f"Failed to verify OAuth: {e}")
             return "Failed to verify OAuth."
     return "Missing OAuth verifier."
 
@@ -136,7 +142,7 @@ try:
     oauth_start_url = f"http://{config.get('General', 'NGROK_DOMAIN')}/start_auth"
     print(f"Visit this URL to start the OAuth process: {oauth_start_url}")
 except Exception as e:
-    logger.error(f"Failed to generate OAuth start URL: {e}")
+    logger.exception(f"Failed to generate OAuth start URL: {e}")
     exit(1)
 
 # Validate 'schedule_time' argument
@@ -212,7 +218,7 @@ def perform_interaction(interaction_type, external_content=None, tweet_content=N
             interaction_limits[interaction_type]['count'] += 1
             
     except Exception as e:
-        logger.error(f"Failed to perform {interaction_type}: {e}")
+        logger.exception(f"Failed to perform {interaction_type}: {e}")
 
 # Auto Mode Function
 # main.py
@@ -235,17 +241,21 @@ def run_flask_app():
 flask_thread = threading.Thread(target=run_flask_app)
 flask_thread.start()
 
-# Start Shadow Bot in Auto/Schedule Mode
-if args.start == 'auto':
-    while True:
-        operate_in_auto_mode()
-        sleep_time = random.randint(1, 3600)
-        time.sleep(sleep_time)
+try:
+    # Start Shadow Bot in Auto Mode
+    if args.start == 'auto':
+        while True:
+            operate_in_auto_mode()
+            sleep_time = random.randint(1, 3600)
+            time.sleep(sleep_time)
 
-if args.start == 'schedule':
-    schedule.every().day.at(start_time).do(operate_in_auto_mode).tag('auto_mode')
-    schedule.every().day.at(end_time).do(lambda: schedule.clear('auto_mode'))
+    # Start Shadow Bot in Schedule Mode
+    if args.start == 'schedule':
+        schedule.every().day.at(start_time).do(operate_in_auto_mode).tag('auto_mode')
+        schedule.every().day.at(end_time).do(lambda: schedule.clear('auto_mode'))
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+finally:
+    close_connection()

@@ -2,7 +2,7 @@ import tweepy
 import re
 import random
 import database_utils
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Initialize Globals
 logger = None

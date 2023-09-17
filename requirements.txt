@@ -1,0 +1,9 @@
+flask
+tweepy
+openai
+sqlite3
+praw
+feedparser
+bs4
+schedule
+configparser

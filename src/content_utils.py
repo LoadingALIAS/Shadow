@@ -26,20 +26,24 @@ def initialize_configurations(loaded_logger, loaded_reddit_config):
 
 # Fetch Reddit Content
 def fetch_reddit_content():
-    subreddits = ['ArtificialIntelligence', 'LocalLLaMA', 'MachineLearning']
-    selected_subreddit = random.choice(subreddits)
-    fetched_post = {}
-    sub = reddit.subreddit(selected_subreddit)
-    top_posts = [post for post in sub.hot(limit=10)]
-    selected_post = random.choice(top_posts)
-    fetched_post = {
-        'source': 'Reddit',
-        'title': selected_post.title,
-        'description': selected_post.selftext,
-        'score': selected_post.score,
-        'timestamp': datetime.datetime.fromtimestamp(selected_post.created_utc).strftime('%Y-%m-%d %H:%M:%S')
-    }
-    return fetched_post
+    try:
+        subreddits = ['ArtificialInteligence', 'LocalLLaMA', 'MachineLearning', 'machinelearningnews']
+        selected_subreddit = random.choice(subreddits)
+        fetched_post = {}
+        sub = reddit.subreddit(selected_subreddit)
+        top_posts = [post for post in sub.hot(limit=10)]
+        selected_post = random.choice(top_posts)
+        fetched_post = {
+            'source': 'Reddit',
+            'title': selected_post.title,
+            'description': selected_post.selftext,
+            'score': selected_post.score,
+            'timestamp': datetime.datetime.fromtimestamp(selected_post.created_utc).strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return fetched_post
+    except Exception as e:
+        print(f"Error fetching Reddit content: {e}")
+        return None
 
 # Fetch DailyAI Content
 def fetch_dailyai_content():
@@ -69,7 +73,7 @@ def fetch_random_content():
         content = selected_source()
         
     except Exception as e:
-        logging.error(f"An error occurred while fetching content from {selected_source.__name__}: {e}")
+        logging.exception(f"An error occurred while fetching content from {selected_source.__name__}: {e}")
         selected_source = fetch_reddit_content
 
     if content is None or not content:

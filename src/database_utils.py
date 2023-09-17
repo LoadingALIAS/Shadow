@@ -13,6 +13,11 @@ def initialize_configurations(loaded_logger):
 conn = sqlite3.connect('Shadow_Bot.db')
 c = conn.cursor()
 
+# Define DB Connection
+def close_connection():
+    global conn
+    conn.close()
+
 # Initialize DB
 def initialize_db():
     try:
